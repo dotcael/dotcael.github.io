@@ -49,9 +49,9 @@ comments:
   provider: giscus
   giscus:
     repo: dotcael/dotcael.github.io
-    repo_id: # filled by bin/setup-giscus
+    repo_id: R_kgDOVPOGlA
     category: Announcements
-    category_id: # filled by bin/setup-giscus
+    category_id: DIC_kwDOVPOGlM4DI--x
     mapping: pathname
     strict: "0"
     input_position: bottom

@@ -1,6 +1,6 @@
 ---
 title: "What a stock OAuth server actually accepts"
-date: 2026-10-19 10:00:00 +0200
+date: 2026-10-19 08:00:00 +0200
 categories: [Guides]
 tags: [oauth, keycloak, redirect-uri, lab]
 description: >-

@@ -11,7 +11,7 @@ require_cmd gh
 REPO="dotcael/dotcael.github.io"
 CONFIG="$REPO_ROOT/_config.yml"
 
-info "enabling GitHub Discussions on $REPO…"
+info "enabling GitHub Discussions on ${REPO} ..."
 gh api -X PATCH "repos/$REPO" -f has_discussions=true >/dev/null \
   || die "could not enable Discussions (is the repo created and are you authed?)"
 ok "Discussions enabled"

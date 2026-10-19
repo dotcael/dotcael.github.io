@@ -10,6 +10,7 @@
 #
 require "yaml"
 require "date"
+require "time"
 
 ROOT       = File.expand_path("..", __dir__)
 POSTS_DIR  = File.join(ROOT, "_posts")
@@ -48,6 +49,18 @@ end
 
 posts = Dir.glob(File.join(POSTS_DIR, "*.md")).sort
 drafts = Dir.exist?(DRAFTS_DIR) ? Dir.glob(File.join(DRAFTS_DIR, "*.md")).sort : []
+
+# Jekyll silently drops future-dated posts. That is a real feature (scheduling)
+# and a real trap (a post that "published" but never appeared), so warn loudly.
+def parses_to_time(value)
+  case value
+  when Time then value
+  when Date then Time.new(value.year, value.month, value.day, 23, 59, 59)
+  when String then (Time.parse(value) rescue nil)
+  end
+end
+
+warnings = []
 
 if posts.empty?
   puts "#{YELLOW}warn#{NC}  no posts in _posts/ — nothing to publish"
@@ -100,6 +113,11 @@ posts.each do |path|
 
   if problems.empty?
     passing += 1
+    t = parses_to_time(fm["date"])
+    if t && t > Time.now
+      warnings << "#{rel}: dated #{t.strftime('%F %T')}, which is in the future — " \
+                  "Jekyll will not publish it until then. Backdate it to publish now."
+    end
   else
     failures[rel] = problems
   end
@@ -107,7 +125,9 @@ end
 
 puts
 if failures.empty?
-  puts "#{GREEN}#{BOLD}preflight passed#{NC}  #{passing} post(s) cleared"
+  suffix = warnings.empty? ? "" : "  #{YELLOW}#{warnings.size} warning#{'s' if warnings.size > 1}#{NC}"
+  puts "#{GREEN}#{BOLD}preflight passed#{NC}  #{passing} post(s) cleared#{suffix}"
+  warnings.each { |w| puts "  #{YELLOW}warn#{NC}  #{w}" }
   puts "#{DIM}drafts not checked (git-ignored): #{drafts.size}#{NC}" unless drafts.empty?
   unless CI
     if File.exist?(DENYLIST)

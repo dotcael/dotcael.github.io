@@ -130,13 +130,13 @@ titles = staged.filter_map do |f|
   raw[/^title:\s*"?([^"\n]+)"?/, 1]&.strip
 end
 
-message =
-  if titles.size == 1 then "post: #{titles.first}"
-  elsif titles.size > 1 then "publish: #{titles.size} posts (#{titles.first} +#{titles.size - 1})"
-  else "site: update"
-  end
+message = case titles.size
+          when 0 then "site: update"
+          when 1 then "post: #{titles.first}"
+          else "publish: #{titles.size} posts (#{titles.first} +#{titles.size - 1})"
+          end
 
-system("git", "commit", "-q", "-m", message) || die "commit failed"
+system("git", "commit", "-q", "-m", message) || die("commit failed")
 ok "committed: #{message}"
 
 branch = `git rev-parse --abbrev-ref HEAD`.strip
