@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+#
+# bin/check — build the site and check links, locally.
+# This is what CI does; run it before pushing to avoid a red build.
+#
+source "$(dirname "$0")/_common.sh"
+in_repo
+
+require_cmd bundle
+
+info "building…"
+bundle exec jekyll build --trace || die "build failed"
+
+info "checking links…"
+if bundle list 2>/dev/null | grep -q html-proofer; then
+  bundle exec htmlproofer _site \
+    --disable-external \
+    --ignore-urls "/^http:\/\/127.0.0.1/,/^http:\/\/0.0.0.0/,/^http:\/\/localhost/" \
+    || die "link check failed"
+else
+  warn "html-proofer not installed — skipping link check (run bin/setup)"
+fi
+
+ok "build + links clean"

@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+#
+# bin/scrub <image> [more images...]
+#
+# Strips EXIF/metadata from images before you commit them. Screenshots leak
+# more than they look like they do: usernames, paths, device names, GPS.
+# Requires exiftool:  brew install exiftool
+#
+source "$(dirname "$0")/_common.sh"
+
+if [ $# -lt 1 ]; then
+  echo "usage: bin/scrub IMAGE [IMAGE...]"
+  exit 1
+fi
+
+if ! command -v exiftool >/dev/null 2>&1; then
+  warn "exiftool is not installed"
+  info "install it:  brew install exiftool"
+  info "then re-run:  bin/scrub $*"
+  exit 1
+fi
+
+for f in "$@"; do
+  [ -f "$f" ] || { warn "not a file, skipped: $f"; continue; }
+  before="$(stat -f%z "$f")"
+  exiftool -all= -overwrite_original -quiet "$f"
+  after="$(stat -f%z "$f")"
+  ok "scrubbed $(basename "$f")  ${DIM}${before}px -> ${after}px${NC}"
+done
+
+warn "now look at the image yourself. Metadata is not the only thing screenshots leak."

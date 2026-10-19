@@ -1,0 +1,149 @@
+# ============================================================================
+# dotcael — site configuration
+# Everything you'd normally change lives in this file. See README.md.
+# ============================================================================
+
+theme: jekyll-theme-chirpy
+
+lang: en
+timezone: Africa/Kigali # affects post dates; change if wrong
+
+# --- Identity ---------------------------------------------------------------
+title: dotcael
+tagline: Notes on software and security
+description: >-
+  Notes on software and security — engineering, tooling, and security
+  research, written up properly.
+
+url: "https://dotcael.github.io" # no trailing slash
+baseurl: ""
+
+github:
+  username: dotcael
+
+# --- Author / copyright -----------------------------------------------------
+social:
+  name: Cael Debrah
+  email: chidebrah@icloud.com
+  links:
+    - https://github.com/dotcael
+
+# --- Appearance -------------------------------------------------------------
+theme_mode: dark # [light | dark]; empty = follow the reader's system
+avatar: "https://github.com/dotcael.png"
+toc: true
+paginate: 10
+cdn: # leave empty; a CDN URL here rewrites all local media paths
+social_preview_image: # optional og:image for link previews
+webmaster_verifications:
+  google:
+  bing:
+
+# --- Analytics (GoatCounter — cookieless) -----------------------------------
+analytics:
+  goatcounter:
+    id: dotcael # your GoatCounter account name (see README)
+
+# --- Comments (giscus — GitHub Discussions) ---------------------------------
+comments:
+  provider: giscus
+  giscus:
+    repo: dotcael/dotcael.github.io
+    repo_id: # filled by bin/setup-giscus
+    category: Announcements
+    category_id: # filled by bin/setup-giscus
+    mapping: pathname
+    strict: "0"
+    input_position: bottom
+    lang: en
+    reactions_enabled: "1"
+
+# --- Post actions -----------------------------------------------------------
+actions:
+  edit_post:
+    enabled: true
+    url: "https://github.com/dotcael/dotcael.github.io/edit/main"
+    static_url: false
+
+# --- PWA --------------------------------------------------------------------
+pwa:
+  enabled: true
+  cache:
+    enabled: true
+    # If a post looks stale after publishing, see README "PWA cache".
+    deny_paths:
+
+# ============================================================================
+# Below here: theme plumbing. You should not need to edit it.
+# ============================================================================
+
+kramdown:
+  footnote_backlink: "&#8617;&#xfe0e;"
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    css_class: highlight
+    span:
+      line_numbers: false
+    block:
+      line_numbers: true
+      start_line: 1
+
+collections:
+  tabs:
+    output: true
+    sort_by: order
+
+defaults:
+  - scope:
+      path: ""
+      type: posts
+    values:
+      layout: post
+      comments: true
+      toc: true
+      permalink: /posts/:title/
+  - scope:
+      path: _drafts
+    values:
+      comments: false
+  - scope:
+      path: ""
+      type: tabs
+    values:
+      layout: page
+      permalink: /:title/
+
+sass:
+  style: compressed
+
+compress_html:
+  clippings: all
+  comments: all
+  endings: all
+  profile: false
+  blanklines: false
+  ignore:
+    envs: [development]
+
+exclude:
+  - "*.gem"
+  - "*.gemspec"
+  - docs
+  - tools
+  - bin
+  - README.md
+  - AGENTS.md
+  - DISCLOSURE.md
+  - LICENSE
+  - purgecss.js
+  - "*.config.js"
+  - "package*.json"
+
+jekyll-archives:
+  enabled: [categories, tags]
+  layouts:
+    category: category
+    tag: tag
+  permalinks:
+    tag: /tags/:name/
+    category: /categories/:name/

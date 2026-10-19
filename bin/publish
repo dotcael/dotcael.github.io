@@ -1,0 +1,167 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+#
+# bin/publish [options]
+#
+# The one command between "written" and "live". Runs the disclosure gate,
+# commits, pushes, and (optionally) waits for the deploy.
+#
+#   bin/publish                                     publish what's in _posts/
+#   bin/publish --consent --disclosed-on 2026-10-19  same, plus open the gate
+#   bin/publish --from-draft my-slug ...             promote an embargoed draft
+#   bin/publish --dry-run                            check only, change nothing
+#   bin/publish --wait                               wait for the live deploy
+#
+require "yaml"
+require "date"
+require "fileutils"
+
+ROOT       = File.expand_path("..", __dir__)
+POSTS_DIR  = File.join(ROOT, "_posts")
+DRAFTS_DIR = File.join(ROOT, "_drafts")
+
+RED = "\e[31m"; GREEN = "\e[32m"; YELLOW = "\e[33m"; DIM = "\e[2m"; BOLD = "\e[1m"; NC = "\e[0m"
+
+def die(msg)
+  warn "#{RED}error:#{NC} #{msg}"
+  exit 1
+end
+
+def ok(msg)   = puts("#{GREEN}ok#{NC}  #{msg}")
+def info(msg) = puts("#{DIM}#{msg}#{NC}")
+def warn_(msg) = puts("#{YELLOW}warn#{NC}  #{msg}")
+
+opts = { from_draft: nil, consent: false, disclosed_on: nil, dry_run: false, wait: false, skip_checks: false }
+
+args = ARGV.dup
+until args.empty?
+  a = args.shift
+  case a
+  when "--from-draft"   then opts[:from_draft] = args.shift
+  when "--consent"      then opts[:consent] = true
+  when "--disclosed-on" then opts[:disclosed_on] = args.shift
+  when "--dry-run"      then opts[:dry_run] = true
+  when "--wait"         then opts[:wait] = true
+  when "--skip-checks"  then opts[:skip_checks] = true
+  when "-h", "--help"
+    puts File.readlines(__FILE__)[2..17].map { |l| l.sub(/^# ?/, "") }.join
+    exit 0
+  else
+    die "unknown option: #{a}"
+  end
+end
+
+today = Date.today.strftime("%F")
+
+# --- 1. promote a draft if asked ---------------------------------------------
+if opts[:from_draft]
+  slug_in = opts[:from_draft].sub(/\.md$/, "")
+  src = File.join(DRAFTS_DIR, "#{slug_in}.md")
+  die "no such draft: _drafts/#{slug_in}.md" unless File.exist?(src)
+
+  slug = File.basename(slug_in).sub(/^\d{4}-\d{2}-\d{2}-/, "")
+  dst = File.join(POSTS_DIR, "#{today}-#{slug}.md")
+  die "already published: #{dst.sub("#{ROOT}/", "")}" if File.exist?(dst)
+
+  if opts[:dry_run]
+    info "would move _drafts/#{slug_in}.md -> _posts/#{today}-#{slug}.md"
+  else
+    FileUtils.mkdir_p(POSTS_DIR)
+    FileUtils.mv(src, dst)
+    ok "promoted draft -> _posts/#{today}-#{slug}.md"
+  end
+end
+
+# --- 2. open the disclosure gate ---------------------------------------------
+unless opts[:consent]
+  info "gate untouched (pass --consent --disclosed-on YYYY-MM-DD to publish a post)"
+end
+
+if opts[:consent] || opts[:disclosed_on]
+  stamp = opts[:disclosed_on] || today
+  Dir.glob(File.join(POSTS_DIR, "*.md")).sort.each do |path|
+    raw = File.read(path, encoding: "UTF-8")
+    changed = raw.dup
+
+    changed.sub!(/^(\s*status:\s*).*$/, "\\1public")                               if opts[:consent]
+    changed.sub!(/^(\s*program_consent:\s*).*$/, "\\1true")                        if opts[:consent]
+    changed.sub!(/^(\s*disclosed_on:\s*).*$/, "\\1#{stamp}")                       if opts[:disclosed_on] || opts[:consent]
+
+    next if changed == raw
+
+    if opts[:dry_run]
+      info "would open gate in #{File.basename(path)} (disclosed_on: #{stamp})"
+    else
+      File.write(path, changed)
+      ok "gate opened: #{File.basename(path)}"
+    end
+  end
+end
+
+# --- 3. the gate itself -------------------------------------------------------
+unless opts[:skip_checks]
+  info "running preflight…"
+  unless system(File.join(ROOT, "bin", "preflight"))
+    die "preflight failed — nothing was committed or pushed"
+  end
+end
+
+if opts[:dry_run]
+  info "dry run: stopping before commit"
+  exit 0
+end
+
+# --- 4. commit + push ---------------------------------------------------------
+Dir.chdir(ROOT)
+
+if `git status --porcelain`.strip.empty?
+  warn_ "nothing to commit — the working tree is clean"
+  exit 0
+end
+
+`git add -A`
+
+# Build a commit message from what actually changed.
+staged = `git diff --cached --name-only`.lines.map(&:strip).select { |f| f.start_with?("_posts/", "_drafts/") }
+titles = staged.filter_map do |f|
+  next unless f.start_with?("_posts/")
+
+  raw = File.read(File.join(ROOT, f), encoding: "UTF-8")
+  raw[/^title:\s*"?([^"\n]+)"?/, 1]&.strip
+end
+
+message =
+  if titles.size == 1 then "post: #{titles.first}"
+  elsif titles.size > 1 then "publish: #{titles.size} posts (#{titles.first} +#{titles.size - 1})"
+  else "site: update"
+  end
+
+system("git", "commit", "-q", "-m", message) || die "commit failed"
+ok "committed: #{message}"
+
+branch = `git rev-parse --abbrev-ref HEAD`.strip
+info "pushing to origin/#{branch}…"
+unless system("git", "push", "-q", "origin", branch)
+  die "push failed (upstream not set? try: git push -u origin #{branch})"
+end
+ok "pushed"
+
+# --- 5. tell the operator where it lands -------------------------------------
+remote = `git remote get-url origin 2>/dev/null`.strip
+slug_path = remote[%r{github\.com[:/](.+?)(?:\.git)?$}, 1]
+
+url = "https://dotcael.github.io"
+puts
+puts "#{BOLD}deploying to #{url}#{NC}"
+puts "#{DIM}live in ~1 minute · progress: https://github.com/#{slug_path}/actions#{NC}"
+
+if opts[:wait]
+  info "waiting for the deploy to finish…"
+  system("gh", "run", "watch", "--exit-status", "--interval", "10")
+  if $?.success?
+    ok "deploy succeeded — #{url}"
+  else
+    warn_ "deploy did not succeed — check the Actions log above"
+    exit 1
+  end
+end

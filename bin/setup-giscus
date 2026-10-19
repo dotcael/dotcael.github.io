@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+#
+# bin/setup-giscus — enable GitHub Discussions and wire giscus comments
+# into _config.yml. Run once, after the repo exists and is pushed.
+#
+source "$(dirname "$0")/_common.sh"
+in_repo
+
+require_cmd gh
+
+REPO="dotcael/dotcael.github.io"
+CONFIG="$REPO_ROOT/_config.yml"
+
+info "enabling GitHub Discussions on $REPO…"
+gh api -X PATCH "repos/$REPO" -f has_discussions=true >/dev/null \
+  || die "could not enable Discussions (is the repo created and are you authed?)"
+ok "Discussions enabled"
+
+info "reading repo + discussion category ids…"
+IDS="$(gh api graphql -f query='
+  query($owner: String!, $name: String!) {
+    repository(owner: $owner, name: $name) {
+      id
+      discussionCategories(first: 20) { nodes { id name } }
+    }
+  }' -f owner="${REPO%%/*}" -f name="${REPO##*/}" \
+  --jq '.data.repository | "\(.id)\t" + ([.discussionCategories.nodes[] | select(.name=="Announcements")][0].id // .discussionCategories.nodes[0].id)')" \
+  || die "GraphQL query failed"
+
+REPO_ID="${IDS%%$'\t'*}"
+CAT_ID="${IDS##*$'\t'}"
+
+[ -n "$REPO_ID" ] || die "could not read repo id"
+[ -n "$CAT_ID" ] || die "could not read a discussion category id"
+
+info "repo_id=$REPO_ID  category_id=$CAT_ID"
+
+perl -0pi -e "s/^(\s*repo_id:).*\$/\$1 $REPO_ID/m" "$CONFIG"
+perl -0pi -e "s/^(\s*category_id:).*\$/\$1 $CAT_ID/m" "$CONFIG"
+
+ok "_config.yml updated"
+info "next: bin/publish --wait   → comments go live with the next deploy"

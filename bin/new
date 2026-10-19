@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+#
+# bin/new [--draft] <category> "Title"
+#
+#   bin/new guides "What a stock OAuth server actually accepts"
+#   bin/new --draft notes "Something I can't publish yet"
+#
+# Categories are fixed: Guides, Notes, Opinion, Writeups.
+# --draft writes to _drafts/ (git-ignored, never published) instead of _posts/.
+#
+source "$(dirname "$0")/_common.sh"
+in_repo
+
+draft=false
+if [ "${1:-}" = "--draft" ]; then
+  draft=true
+  shift
+fi
+
+if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+  sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
+  exit 0
+fi
+
+[ $# -ge 2 ] || die "usage: bin/new [--draft] <category> \"Title\"   (categories: $CATEGORIES)"
+
+cat_in="$1"
+shift
+title="$*"
+
+canon="$(canon_category "$cat_in")" \
+  || die "unknown category '$cat_in'. Use one of: $CATEGORIES"
+
+slug="$(slugify "$title")"
+[ -n "$slug" ] || die "could not build a slug from '$title'"
+
+if [ "$draft" = true ]; then
+  mkdir -p "$REPO_ROOT/_drafts"
+  file="$REPO_ROOT/_drafts/$slug.md"
+else
+  mkdir -p "$REPO_ROOT/_posts"
+  file="$REPO_ROOT/_posts/$(date +%F)-$slug.md"
+fi
+
+[ -e "$file" ] && die "already exists: $file"
+
+esc_title="$(printf '%s' "$title" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+
+sed -e "s|__TITLE__|$esc_title|g" \
+    -e "s|__DATE__|$(date +%F)|g" \
+    -e "s|__CATEGORY__|$canon|g" \
+    "$REPO_ROOT/_templates/post.md" > "$file"
+
+ok "created ${file#"$REPO_ROOT"/}"
+if [ "$draft" = true ]; then
+  info "draft: git-ignored, visible only in bin/serve, never published"
+  info "when it clears: bin/publish --from-draft $slug --consent --disclosed-on YYYY-MM-DD"
+else
+  info "write it, then: bin/serve   →   bin/publish --consent --disclosed-on YYYY-MM-DD"
+fi

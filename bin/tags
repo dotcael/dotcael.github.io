@@ -1,0 +1,32 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+#
+# bin/tags — every tag in use, with counts. Check before inventing a new one.
+#
+require "yaml"
+require "date"
+
+ROOT      = File.expand_path("..", __dir__)
+POSTS_DIR = File.join(ROOT, "_posts")
+
+counts = Hash.new(0)
+
+Dir.glob(File.join(POSTS_DIR, "*.md")).sort.each do |path|
+  lines = File.read(path, encoding: "UTF-8").lines
+  close = (1...lines.size).find { |i| lines[i].strip == "---" }
+  next unless close
+
+  fm = YAML.safe_load(lines[1...close].join, permitted_classes: [Date, Time], aliases: true)
+  next unless fm.is_a?(Hash)
+
+  Array(fm["tags"]).each { |t| counts[t.to_s] += 1 }
+end
+
+if counts.empty?
+  puts "no tags in use yet"
+  exit 0
+end
+
+counts.sort_by { |tag, n| [-n, tag] }.each { |tag, n| puts format("%3d  %s", n, tag) }
+puts
+puts "#{counts.size} tag(s) across #{Dir.glob(File.join(POSTS_DIR, "*.md")).size} post(s)"

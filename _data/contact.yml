@@ -1,0 +1,28 @@
+# Sidebar contact icons. Order here = order on the page.
+# To add one, uncomment a block below and fill in the url.
+
+- type: github
+  icon: "fab fa-github"
+
+- type: email
+  icon: "fas fa-envelope"
+  noblank: true
+
+- type: rss
+  icon: "fas fa-rss"
+  noblank: true
+
+# - type: twitter
+#   icon: "fa-brands fa-x-twitter"
+#
+# - type: bluesky
+#   icon: 'fa-brands fa-bluesky'
+#   url: ''
+#
+# - type: linkedin
+#   icon: 'fab fa-linkedin'
+#   url: ''
+#
+# - type: mastodon
+#   icon: 'fab fa-mastodon'
+#   url: ''

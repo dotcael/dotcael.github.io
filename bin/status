@@ -1,0 +1,51 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+#
+# bin/status — what's published, what's gated, what's embargoed.
+#
+require "yaml"
+require "date"
+
+ROOT       = File.expand_path("..", __dir__)
+POSTS_DIR  = File.join(ROOT, "_posts")
+DRAFTS_DIR = File.join(ROOT, "_drafts")
+BOLD = "\e[1m"; DIM = "\e[2m"; RED = "\e[31m"; GREEN = "\e[32m"; YELLOW = "\e[33m"; NC = "\e[0m"
+
+def gate_of(path)
+  raw = File.read(path, encoding: "UTF-8")
+  lines = raw.lines
+  close = (1...lines.size).find { |i| lines[i].strip == "---" }
+  return nil unless close
+
+  fm = YAML.safe_load(lines[1...close].join, permitted_classes: [Date, Time], aliases: true)
+  fm.is_a?(Hash) ? fm : nil
+rescue StandardError
+  nil
+end
+
+posts = Dir.glob(File.join(POSTS_DIR, "*.md")).sort
+drafts = Dir.exist?(DRAFTS_DIR) ? Dir.glob(File.join(DRAFTS_DIR, "*.md")).sort : []
+
+puts
+puts "#{BOLD}PUBLISHED#{NC} (#{posts.size})"
+if posts.empty?
+  puts "  #{DIM}none yet#{NC}"
+else
+  posts.each do |p|
+    fm = gate_of(p) || {}
+    disc = fm["disclosure"].is_a?(Hash) ? fm["disclosure"] : {}
+    status = disc["status"].to_s
+    colour = status == "public" ? GREEN : RED
+    cats = Array(fm["categories"]).join(",")
+    puts "  #{colour}#{(status.empty? ? 'no-gate' : status).ljust(9)}#{NC} #{File.basename(p)} #{DIM}[#{cats}]#{NC}"
+  end
+end
+
+puts
+puts "#{BOLD}EMBARGOED / DRAFTS#{NC} (#{drafts.size}) #{DIM}— git-ignored, never published#{NC}"
+if drafts.empty?
+  puts "  #{DIM}none#{NC}"
+else
+  drafts.each { |d| puts "  #{YELLOW}draft    #{NC} _drafts/#{File.basename(d)}" }
+end
+puts

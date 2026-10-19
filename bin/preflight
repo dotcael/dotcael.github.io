@@ -1,0 +1,130 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+#
+# bin/preflight [--ci]
+#
+# Refuses to let anything publish that shouldn't. Run automatically by
+# bin/publish, and structurally (without the local denylist) by CI.
+#
+#   --ci   skip the denylist check (CI cannot see the local denylist file)
+#
+require "yaml"
+require "date"
+
+ROOT       = File.expand_path("..", __dir__)
+POSTS_DIR  = File.join(ROOT, "_posts")
+DRAFTS_DIR = File.join(ROOT, "_drafts")
+CATEGORIES = %w[Guides Notes Opinion Writeups].freeze
+DENYLIST   = ENV["BLOG_DENYLIST"] || File.join(Dir.home, "Developer", "writing", "denylist.txt")
+PLACEHOLDERS = %w[__TITLE__ __DATE__ __CATEGORY__ REPLACE_ME TODO:].freeze
+
+CI = ARGV.include?("--ci")
+
+RED = "\e[31m"; GREEN = "\e[32m"; YELLOW = "\e[33m"; DIM = "\e[2m"; BOLD = "\e[1m"; NC = "\e[0m"
+
+def parse(path)
+  raw = File.read(path, encoding: "UTF-8")
+  return [nil, raw, "does not start with front matter (---)"] unless raw.start_with?("---")
+
+  lines = raw.lines
+  close = (1...lines.size).find { |i| lines[i].strip == "---" }
+  return [nil, raw, "front matter is never closed"] unless close
+
+  fm = YAML.safe_load(lines[1...close].join, permitted_classes: [Date, Time], aliases: true)
+  return [nil, raw, "front matter is not a mapping"] unless fm.is_a?(Hash)
+
+  [fm, raw, nil]
+rescue Psych::SyntaxError => e
+  [nil, raw, "invalid YAML: #{e.message.lines.first.to_s.strip}"]
+end
+
+def denylist_terms
+  return [] unless File.exist?(DENYLIST)
+
+  File.readlines(DENYLIST, encoding: "UTF-8")
+      .map(&:strip)
+      .reject { |l| l.empty? || l.start_with?("#") }
+end
+
+posts = Dir.glob(File.join(POSTS_DIR, "*.md")).sort
+drafts = Dir.exist?(DRAFTS_DIR) ? Dir.glob(File.join(DRAFTS_DIR, "*.md")).sort : []
+
+if posts.empty?
+  puts "#{YELLOW}warn#{NC}  no posts in _posts/ — nothing to publish"
+end
+
+terms = CI ? [] : denylist_terms
+failures = {}
+passing = 0
+
+posts.each do |path|
+  rel = path.sub("#{ROOT}/", "")
+  problems = []
+  fm, raw, err = parse(path)
+
+  if err
+    failures[rel] = [err]
+    next
+  end
+
+  # --- required metadata -----------------------------------------------------
+  problems << "missing title" if fm["title"].to_s.strip.empty?
+  problems << "missing date" if fm["date"].to_s.strip.empty?
+
+  cats = Array(fm["categories"]).map(&:to_s)
+  problems << "no categories" if cats.empty?
+  bad = cats.reject { |c| CATEGORIES.include?(c) }
+  problems << "unknown category(ies): #{bad.join(', ')} (allowed: #{CATEGORIES.join(', ')})" unless bad.empty?
+
+  # --- the disclosure gate ---------------------------------------------------
+  disc = fm["disclosure"]
+  if disc.is_a?(Hash)
+    status = disc["status"].to_s
+    problems << "disclosure.status is '#{status}' — must be 'public'" unless status == "public"
+    consent = disc["program_consent"]
+    problems << "disclosure.program_consent is not true (or n/a for a non-engagement post)" unless consent == true || consent.to_s == "n/a"
+    problems << "disclosure.disclosed_on is empty" if disc["disclosed_on"].to_s.strip.empty?
+  else
+    problems << "missing the disclosure: block (see DISCLOSURE.md)"
+  end
+
+  # --- leftovers -------------------------------------------------------------
+  found = PLACEHOLDERS.select { |p| raw.include?(p) }
+  problems << "template leftovers in file: #{found.join(', ')}" unless found.empty?
+
+  # --- denylist (local only) -------------------------------------------------
+  unless terms.empty?
+    hits = terms.select { |t| raw.downcase.include?(t.downcase) }
+    problems << "denylist hit(s): #{hits.join(', ')}" unless hits.empty?
+  end
+
+  if problems.empty?
+    passing += 1
+  else
+    failures[rel] = problems
+  end
+end
+
+puts
+if failures.empty?
+  puts "#{GREEN}#{BOLD}preflight passed#{NC}  #{passing} post(s) cleared"
+  puts "#{DIM}drafts not checked (git-ignored): #{drafts.size}#{NC}" unless drafts.empty?
+  unless CI
+    if File.exist?(DENYLIST)
+      puts "#{DIM}denylist: #{terms.size} term(s) from #{DENYLIST}#{NC}"
+    else
+      puts "#{YELLOW}warn#{NC}  no denylist at #{DENYLIST} — create it (see DISCLOSURE.md)"
+    end
+  end
+  exit 0
+end
+
+puts "#{RED}#{BOLD}preflight FAILED#{NC}"
+failures.each do |file, problems|
+  puts
+  puts "  #{BOLD}#{file}#{NC}"
+  problems.each { |p| puts "    #{RED}-#{NC} #{p}" }
+end
+puts
+puts "#{DIM}Embargoed work belongs in _drafts/ (git-ignored). See DISCLOSURE.md.#{NC}"
+exit 1
