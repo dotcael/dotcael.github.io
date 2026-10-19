@@ -178,6 +178,11 @@ The filename is the URL, so the old URL is gone. Rename it back, or accept the
 break. To keep old links working you'd need a redirect, which this theme
 doesn't do out of the box.
 
+**A draft is showing up in a build**
+`bin/serve` builds with drafts on (`--drafts`) into `_site/`. Run `bin/check`
+for a clean production build. Drafts are never in git — checked by
+`git check-ignore`.
+
 **Preflight says "denylist hit"**
 A term in `~/Developer/writing/denylist.txt` appears in the post. Either the
 post shouldn't be published yet, or the term is a false positive — edit the
@@ -185,14 +190,19 @@ denylist if so.
 
 **`bundle install` fails / `bin/serve` errors about Ruby**
 Chirpy needs **Ruby 3.1–3.x**. This Mac's default Ruby is 4.0.6, which is *too
-new* — the theme's own gemspec rejects it. Fix:
+new* — the theme's own gemspec rejects it. Install a prebuilt 3.x:
 
 ```bash
-brew install ruby@3.4
+brew install ruby@3.2      # seconds — prebuilt binary
 ```
 
-`bin/setup`, `bin/serve`, and `bin/publish` automatically prefer Homebrew's
-`ruby@3.4` when it's installed, so nothing else needs changing. CI is pinned to
+Do **not** use `ruby@3.3`/`ruby@3.4` on this machine: Homebrew has no prebuilt
+binary for this macOS/Intel combo, so it compiles OpenSSL from source and takes
+20+ minutes of full-CPU work. `ruby@3.1` and `ruby@3.2` are bottled; 3.2 is used
+here.
+
+`bin/setup`, `bin/serve`, and `bin/publish` prefer a Homebrew 3.x keg
+automatically (3.4 → 3.3 → 3.2 → 3.1), so nothing else needs changing. CI pins
 3.4 independently and is unaffected.
 
 **`bundle install` warns "running version of Bundler does not match …"**
