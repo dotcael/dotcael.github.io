@@ -5,6 +5,18 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export REPO_ROOT
 
+# --- Ruby version guard ------------------------------------------------------
+# Chirpy requires Ruby ~> 3.1 (i.e. 3.x, NOT 4.x). This Mac's default Ruby is
+# 4.0.6, so builds fail with "version solving has failed" unless a 3.4 keg is
+# used. Prefer Homebrew's ruby@3.4 when it exists; CI pins 3.4 independently.
+for _keg in /usr/local/opt/ruby@3.4 /opt/homebrew/opt/ruby@3.4; do
+  if [ -x "$_keg/bin/ruby" ]; then
+    export PATH="$_keg/bin:$PATH"
+    break
+  fi
+done
+unset _keg
+
 # Where the private denylist lives (outside this repo, on purpose).
 DENYLIST="${BLOG_DENYLIST:-$HOME/Developer/writing/denylist.txt}"
 export DENYLIST

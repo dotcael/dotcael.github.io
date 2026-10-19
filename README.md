@@ -183,9 +183,21 @@ A term in `~/Developer/writing/denylist.txt` appears in the post. Either the
 post shouldn't be published yet, or the term is a false positive — edit the
 denylist if so.
 
-**`bundle install` fails**
-Needs Ruby (3.1+). `brew install ruby` if missing. On this Intel Mac, Ruby 4.0.6
-works.
+**`bundle install` fails / `bin/serve` errors about Ruby**
+Chirpy needs **Ruby 3.1–3.x**. This Mac's default Ruby is 4.0.6, which is *too
+new* — the theme's own gemspec rejects it. Fix:
+
+```bash
+brew install ruby@3.4
+```
+
+`bin/setup`, `bin/serve`, and `bin/publish` automatically prefer Homebrew's
+`ruby@3.4` when it's installed, so nothing else needs changing. CI is pinned to
+3.4 independently and is unaffected.
+
+**`bundle install` warns "running version of Bundler does not match …"**
+Cosmetic on this machine (it was set up with two Bundler versions). Builds work.
+`gem install bundler -v <the version it names>` silences it.
 
 ---
 
