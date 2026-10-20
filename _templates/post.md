@@ -5,7 +5,7 @@ categories: [__CATEGORY__]
 tags: []
 description: >-
   One or two sentences. This is what shows up in link previews, the homepage
-  card, and search results — write it last.
+  card, and search results. Write it last.
 image: # /assets/img/POST-SLUG/preview.webp  (produces the homepage card image)
 toc: true
 comments: true
@@ -17,7 +17,7 @@ disclosure:
 
 <!--
 =====================================================================
- BEFORE YOU PUBLISH — the checklist that actually matters
+ BEFORE YOU PUBLISH: the checklist that actually matters
 =====================================================================
  1. embargo: does this reference a live program, host, internal name,
     credential, or unreleased finding? If yes, it belongs in _drafts/.
@@ -33,7 +33,7 @@ disclosure:
 -->
 
 Open with the point. Why does this exist? What did you learn, and who cares?
-Skip the throat-clearing — the reader already clicked.
+Skip the throat-clearing. The reader already clicked.
 
 ## Background
 

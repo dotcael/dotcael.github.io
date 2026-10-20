@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 #
-# bin/tags — every tag in use, with counts. Check before inventing a new one.
+# bin/tags: every tag in use, with counts. Check before inventing a new one.
 #
 require "yaml"
 require "date"

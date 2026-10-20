@@ -102,7 +102,7 @@ end
 unless opts[:skip_checks]
   info "running preflight…"
   unless system(File.join(ROOT, "bin", "preflight"))
-    die "preflight failed — nothing was committed or pushed"
+    die "preflight failed, nothing was committed or pushed"
   end
 end
 
@@ -115,7 +115,7 @@ end
 Dir.chdir(ROOT)
 
 if `git status --porcelain`.strip.empty?
-  warn_ "nothing to commit — the working tree is clean"
+  warn_ "nothing to commit, the working tree is clean"
   exit 0
 end
 
@@ -159,13 +159,13 @@ if opts[:wait]
   info "waiting for the deploy to finish…"
   run_id = `gh run list -L1 --json databaseId --jq '.[0].databaseId' 2>/dev/null`.strip
   if run_id.empty?
-    warn_ "could not read the run id — check the Actions page above"
+    warn_ "could not read the run id, check the Actions page above"
   else
     system("gh", "run", "watch", run_id, "--exit-status", "--interval", "10")
     if $?.success?
-      ok "deploy succeeded — #{url}"
+      ok "deploy succeeded: #{url}"
     else
-      warn_ "deploy did not succeed — check the Actions log"
+      warn_ "deploy did not succeed, check the Actions log"
       exit 1
     end
   end

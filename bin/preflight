@@ -63,7 +63,7 @@ end
 warnings = []
 
 if posts.empty?
-  puts "#{YELLOW}warn#{NC}  no posts in _posts/ — nothing to publish"
+  puts "#{YELLOW}warn#{NC}  no posts in _posts/, nothing to publish"
 end
 
 terms = CI ? [] : denylist_terms
@@ -93,7 +93,7 @@ posts.each do |path|
   disc = fm["disclosure"]
   if disc.is_a?(Hash)
     status = disc["status"].to_s
-    problems << "disclosure.status is '#{status}' — must be 'public'" unless status == "public"
+    problems << "disclosure.status is '#{status}', must be 'public'" unless status == "public"
     consent = disc["program_consent"]
     problems << "disclosure.program_consent is not true (or n/a for a non-engagement post)" unless consent == true || consent.to_s == "n/a"
     problems << "disclosure.disclosed_on is empty" if disc["disclosed_on"].to_s.strip.empty?
@@ -115,7 +115,7 @@ posts.each do |path|
     passing += 1
     t = parses_to_time(fm["date"])
     if t && t > Time.now
-      warnings << "#{rel}: dated #{t.strftime('%F %T')}, which is in the future — " \
+      warnings << "#{rel}: dated #{t.strftime('%F %T')}, which is in the future, " \
                   "Jekyll will not publish it until then. Backdate it to publish now."
     end
   else
@@ -133,7 +133,7 @@ if failures.empty?
     if File.exist?(DENYLIST)
       puts "#{DIM}denylist: #{terms.size} term(s) from #{DENYLIST}#{NC}"
     else
-      puts "#{YELLOW}warn#{NC}  no denylist at #{DENYLIST} — create it (see DISCLOSURE.md)"
+      puts "#{YELLOW}warn#{NC}  no denylist at #{DENYLIST}, create it (see DISCLOSURE.md)"
     end
   end
   exit 0

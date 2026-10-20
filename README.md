@@ -1,6 +1,6 @@
 # dotcael.github.io
 
-Personal blog — software engineering and security notes.
+Personal blog: software engineering and security notes.
 Chirpy (Jekyll) theme, hosted free on GitHub Pages, deployed by GitHub Actions
 on every push to `main`.
 
@@ -36,7 +36,7 @@ front matter already filled in and the gate set to `draft`.
 **2. Write it**
 
 ```bash
-bin/serve        # http://127.0.0.1:4000 — saves trigger a reload
+bin/serve        # http://127.0.0.1:4000, saves trigger a reload
 ```
 
 Plain markdown. Two things worth knowing:
@@ -88,7 +88,7 @@ is a mistake published forever.
 ```bash
 mkdir -p assets/img/my-post-slug
 cp ~/Desktop/shot.png assets/img/my-post-slug/
-bin/scrub assets/img/my-post-slug/shot.png    # strips EXIF — needs: brew install exiftool
+bin/scrub assets/img/my-post-slug/shot.png    # strips EXIF (needs: brew install exiftool)
 ```
 
 Then in the post:
@@ -99,7 +99,7 @@ Then in the post:
 
 The `image:` key in the front matter is what produces the big preview card on
 the homepage. **Look at every screenshot with your own eyes.** Metadata is not
-the only thing images leak — hostnames, usernames, and browser profiles are.
+the only thing images leak: hostnames, usernames, and browser profiles are.
 
 ---
 
@@ -132,14 +132,14 @@ Everything is a one-line edit, then `bin/publish`.
 
 ---
 
-## Analytics — GoatCounter
+## Analytics: GoatCounter
 
 Free, cookieless, no banner needed.
 
 1. Sign up at https://www.goatcounter.com/signup
    - **Account name**: `dotcael` → your dashboard is `dotcael.goatcounter.com`
      and this exact string goes in `_config.yml` → `analytics.goatcounter.id`.
-   - **Site domain**: `dotcael.github.io` — display only, used for links, not
+   - **Site domain**: `dotcael.github.io`, display only, used for links, not
      for filtering.
 2. Already wired in `_config.yml` as `id: dotcael`. If you picked a different
    account name, change that one line.
@@ -147,7 +147,7 @@ Free, cookieless, no banner needed.
 
 ---
 
-## Comments — giscus
+## Comments: giscus
 
 Backed by GitHub Discussions on this repo. Two repos' worth of setup, one command:
 
@@ -157,7 +157,7 @@ bin/publish --wait    # deploy it
 ```
 
 Anyone with a GitHub account can then comment. To moderate: the Discussions tab
-on the repo — comments are just discussions, so deleting one there deletes it
+on the repo: comments are just discussions, so deleting one there deletes it
 from the site.
 
 ---
@@ -165,7 +165,7 @@ from the site.
 ## Troubleshooting
 
 **The build failed (red X on GitHub)**
-Run `bin/check` locally — it does the same build plus a link check and prints
+Run `bin/check` locally: it does the same build plus a link check and prints
 the real error. Usual causes: a typo in the front matter, an unclosed code
 fence (```), or a link to a page that doesn't exist.
 
@@ -180,20 +180,20 @@ doesn't do out of the box.
 
 **A draft is showing up in a build**
 `bin/serve` builds with drafts on (`--drafts`) into `_site/`. Run `bin/check`
-for a clean production build. Drafts are never in git — checked by
+for a clean production build. Drafts are never in git, checked by
 `git check-ignore`.
 
 **Preflight says "denylist hit"**
 A term in `~/Developer/writing/denylist.txt` appears in the post. Either the
-post shouldn't be published yet, or the term is a false positive — edit the
+post shouldn't be published yet, or the term is a false positive, edit the
 denylist if so.
 
 **`bundle install` fails / `bin/serve` errors about Ruby**
 Chirpy needs **Ruby 3.1–3.x**. This Mac's default Ruby is 4.0.6, which is *too
-new* — the theme's own gemspec rejects it. Install a prebuilt 3.x:
+new*: the theme's own gemspec rejects it. Install a prebuilt 3.x:
 
 ```bash
-brew install ruby@3.2      # seconds — prebuilt binary
+brew install ruby@3.2      # seconds, prebuilt binary
 ```
 
 Do **not** use `ruby@3.3`/`ruby@3.4` on this machine: Homebrew has no prebuilt
@@ -216,7 +216,7 @@ Cosmetic on this machine (it was set up with two Bundler versions). Builds work.
 The repo is Syncthing-synced to the PC, so you can *write* anywhere. Publish
 from the Mac:
 
-- Jekyll on Windows is painful — don't try to build there.
+- Jekyll on Windows is painful. Don't try to build there.
 - **Only one machine should commit at a time.** If both do, Syncthing creates
   `*.sync-conflict-*` files. Git conflicts are the one thing this setup makes
   worse, not better.
@@ -231,8 +231,8 @@ from the Mac:
 ```
 _config.yml          everything configurable
 _tabs/               the pages in the top nav (about, disclosure, …)
-_posts/              published posts — filename = URL
-_drafts/             GIT-IGNORED — embargoed work, never published
+_posts/              published posts, filename = URL
+_drafts/             GIT-IGNORED, embargoed work, never published
 _templates/post.md   the template bin/new copies
 bin/                 the commands in this README
 assets/img/          post images

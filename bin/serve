@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# bin/serve — local preview at http://127.0.0.1:4000, live reload.
+# bin/serve: local preview at http://127.0.0.1:4000, live reload.
 # Drafts in _drafts/ ARE visible here (and only here). Ctrl-C to stop.
 #
 source "$(dirname "$0")/_common.sh"

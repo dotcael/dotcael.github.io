@@ -15,7 +15,7 @@ up front rather than let readers guess.
   publication, or when a coordinated disclosure window has elapsed under their
   stated terms. Both conditions, not either.
 - **Method, freely.** How I scope, how I test, how I triage, how I decide to
-  stop — described generically. Method posts describe what I do, never what I
+  stop, described generically. Method posts describe what I do, never what I
   found or where I found it.
 - **Tooling and engineering**, with no dependency on any engagement.
 - **Opinion**, about the ecosystem rather than about individual programs.
@@ -31,7 +31,7 @@ up front rather than let readers guess.
 
 ## Corrections and redactions
 
-If something here reveals more than it should — mine or someone else's — tell me
+If something here reveals more than it should, mine or someone else's, tell me
 and I will correct or remove it, and say publicly that I did. I would rather
 lose a post than a program's trust, and a target's trust.
 

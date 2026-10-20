@@ -1,4 +1,4 @@
-# DISCLOSURE.md — internal rules for this repo
+# DISCLOSURE.md: internal rules for this repo
 
 This is the enforcement side of the public [/disclosure/](/disclosure/) page.
 Read it before you commit anything that comes out of a bug bounty engagement.
@@ -15,7 +15,7 @@ Deletion is not a rollback. There is no undo for "I pushed it for five minutes."
 
 Practically: if a post references a live program, an internal hostname, a
 program name, an unreleased finding, or a credential, it lives in `_drafts/`
-(which is git-ignored) or in the private ideas ledger — never in `_posts/`.
+(which is git-ignored) or in the private ideas ledger, never in `_posts/`.
 
 ## The gate
 
@@ -47,10 +47,10 @@ publish.
 ## The denylist
 
 `bin/preflight` also greps every publishable post for terms that must never
-appear — program names, internal hosts, target domains, contact addresses.
+appear: program names, internal hosts, target domains, contact addresses.
 
 - **Location**: `~/Developer/writing/denylist.txt` (outside this repo, by
-  design — it is not published and not synced into the site).
+  design: it is not published and not synced into the site).
 - **Format**: one term per line, case-insensitive substring match.
 - **CI cannot see it** (it's local-only), so the denylist check runs in the
   local pre-push path. Do not bypass it.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# bin/setup — install the build dependencies. Run once per machine.
+# bin/setup: install the build dependencies. Run once per machine.
 #
 source "$(dirname "$0")/_common.sh"
 in_repo

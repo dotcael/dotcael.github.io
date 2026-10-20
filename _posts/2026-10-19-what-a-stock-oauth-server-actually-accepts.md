@@ -37,14 +37,14 @@ Nothing clever, and nothing on the internet:
 - Stock `quay.io/keycloak/keycloak:26.0` (26.0.8), listening on
   `127.0.0.1:8081`.
 - A realm called `lab`, with three clients:
-  - `c1` — exact registered redirect `https://app.example.com/callback`
-  - `c2` — host wildcard `https://*.example.com/*`
-  - `c3` — path wildcard `https://app.example.com/*`
+  - `c1`: exact registered redirect `https://app.example.com/callback`
+  - `c2`: host wildcard `https://*.example.com/*`
+  - `c3`: path wildcard `https://app.example.com/*`
 - Every request below goes to localhost. No external host was contacted, and
   no live system was involved.
 
 One methodological note, because it matters more than the results: **every
-verdict is `Observed`** — captured directly from a response or a server log
+verdict is `Observed`**, captured directly from a response or a server log
 event. Nothing here is inferred, reproduced from someone else's writeup, or
 generalised beyond what I saw. Where I don't know, it says so.
 
@@ -54,8 +54,8 @@ generalised beyond what I saw. Where I don't know, it says so.
 |---|---|---|
 | TK0 | Baseline: exact registered redirect | `200`, login page rendered |
 | TK1 | Unregistered host | `400 Invalid parameter: redirect_uri` |
-| TK2 | Evil siblings (`app.example.com.evil.test`, `evil-app.example.com`) | `400` — both rejected |
-| TK3 | Trailing path + query injection | `400` — both rejected |
+| TK2 | Evil siblings (`app.example.com.evil.test`, `evil-app.example.com`) | `400`, both rejected |
+| TK3 | Trailing path + query injection | `400`, both rejected |
 | TK4 | Host wildcard client (`c2`) | **every candidate rejected, including its own** |
 | TK4b | Path wildcard client (`c3`) | `200` for registered path, `200` for `/callback/evil` |
 | TK5 | Flow-agnostic (implicit vs code) | identical validation, no bypass |
@@ -67,7 +67,7 @@ generalised beyond what I saw. Where I don't know, it says so.
 ### 1. The host wildcard is stored, and matches nothing
 
 This is the one that changed how I'd review a Keycloak config. Client `c2` was
-configured with the pattern `https://*.example.com/*` — a form that looks like
+configured with the pattern `https://*.example.com/*`, a form that looks like
 standard wildcard support. Every single candidate I tried against it failed:
 
 ```
@@ -80,14 +80,14 @@ redirect_uri=https://app.example.com/callback/evil            -> 400
 redirect_uri=https://app.example.com/callback?next=//evil.test -> 400
 ```
 
-All seven, rejected — with the server event `invalid_redirect_uri` each time.
+All seven rejected, with the server event `invalid_redirect_uri` each time.
 
 My first read was "good, that's strict". The actual explanation is less
 comforting: the pattern is **accepted and stored, but the matcher doesn't
 support host wildcards**, so it matches no redirect URI at all.
 
 Meanwhile `c3`, registered with a *path* wildcard (`https://app.example.com/*`),
-behaved as you'd expect — the exact path worked, and so did a suffix:
+behaved as you'd expect: the exact path worked, and so did a suffix:
 
 ```
 https://app.example.com/callback      -> 200 login page
@@ -98,19 +98,19 @@ https://evil.example.com/cb           -> 400
 That's a real path-suffix exposure, and the interesting part is what happens
 after login: the final redirect is
 `https://app.example.com/callback/evil?code=...&session_state=...`, i.e. the
-originally authorized URI — so the re-validation on the way out holds. You get
+originally authorized URI, so the re-validation on the way out holds. You get
 the looseness you configured, and no more.
 
 **The practical consequence:** "wildcard redirect URI" in Keycloak is a
 path-suffix feature, not a host-suffix one. A host wildcard in a client config
 is worse than no wildcard, because it looks like a broad-but-intended
-permission while actually rejecting everything — which tends to get "fixed"
+permission while actually rejecting everything, which tends to get "fixed"
 later by someone pasting in a real wildcard or a bare-domain registration.
 
 ### 2. PKCE is off until you turn it on
 
 Out of the box, an authorization request with **no `code_challenge` at all**
-was accepted — `200`, straight to the login page.
+was accepted: `200`, straight to the login page.
 
 Flipping one per-client attribute (`pkce.code.challenge.method=S256`) changed
 that immediately and cleanly:
@@ -125,7 +125,7 @@ with a valid S256 challenge:
 
 So enforcement works, it's just opt-in. If you're auditing a deployment rather
 than configuring one, "does it enforce PKCE" is a client-by-client question,
-not a version question — and the default answer is no.
+not a version question, and the default answer is no.
 
 ### 3. Evil siblings and query injection are dead on arrival
 
@@ -147,7 +147,7 @@ response_type=token, redirect_uri=https://evil.example.com/cb -> 400
 response_type=code,  redirect_uri=https://evil.example.com/cb -> 400
 ```
 
-Scopes are similarly unforgiving — one unknown scope kills the whole request
+Scopes are similarly unforgiving: one unknown scope kills the whole request
 with `invalid_scope` rather than being silently dropped:
 
 ```
@@ -166,9 +166,9 @@ with a token that's narrower than the application believes it is.
 
 - Exact `redirect_uri` matching. Evil siblings, trailing paths, and query
   injection all rejected.
-- Unknown scopes rejected — no pass-through, no silent narrowing.
+- Unknown scopes rejected: no pass-through, no silent narrowing.
 - PKCE **not** enforced.
-- Trailing path wildcard (`/*`) is supported. Host wildcards are not — and
+- Trailing path wildcard (`/*`) is supported. Host wildcards are not, and
   the pattern is stored anyway.
 
 **Requires explicit configuration, which means it requires explicit review:**
@@ -186,7 +186,7 @@ with a token that's narrower than the application believes it is.
 - **Host wildcards in Keycloak are a trap.** They're accepted, stored, and
   useless. If you review configs for a living, that's a finding in itself.
 - **PKCE's default matters for audits.** "Modern Keycloak" does not mean "PKCE
-  enforced" — it's a per-client attribute.
+  enforced": it's a per-client attribute.
 - **Label your evidence.** Calling every result `Observed` and refusing to
   generalise kept me honest about the three or four things I genuinely didn't
   test.

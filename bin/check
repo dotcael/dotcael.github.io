@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# bin/check — build the site and check links, locally.
+# bin/check: build the site and check links, locally.
 # This is what CI does; run it before pushing to avoid a red build.
 #
 source "$(dirname "$0")/_common.sh"
@@ -18,7 +18,7 @@ if bundle list 2>/dev/null | grep -q html-proofer; then
     --ignore-urls "/^http:\/\/127.0.0.1/,/^http:\/\/0.0.0.0/,/^http:\/\/localhost/" \
     || die "link check failed"
 else
-  warn "html-proofer not installed — skipping link check (run bin/setup)"
+  warn "html-proofer not installed, skipping link check (run bin/setup)"
 fi
 
 ok "build + links clean"

@@ -1,5 +1,5 @@
 # ============================================================================
-# dotcael — site configuration
+# dotcael: site configuration
 # Everything you'd normally change lives in this file. See README.md.
 # ============================================================================
 
@@ -12,7 +12,7 @@ timezone: Africa/Kigali # affects post dates; change if wrong
 title: dotcael
 tagline: Notes on software and security
 description: >-
-  Notes on software and security — engineering, tooling, and security
+  Notes on software and security. Engineering, tooling, and security
   research, written up properly.
 
 url: "https://dotcael.github.io" # no trailing slash
@@ -23,7 +23,7 @@ github:
 
 # --- Author / copyright -----------------------------------------------------
 social:
-  name: Cael Debrah
+  name: dotcael
   email: chidebrah@icloud.com
   links:
     - https://github.com/dotcael
@@ -39,12 +39,12 @@ webmaster_verifications:
   google:
   bing:
 
-# --- Analytics (GoatCounter — cookieless) -----------------------------------
+# --- Analytics (GoatCounter, cookieless) -----------------------------------
 analytics:
   goatcounter:
     id: dotcael # your GoatCounter account name (see README)
 
-# --- Comments (giscus — GitHub Discussions) ---------------------------------
+# --- Comments (giscus, GitHub Discussions) ---------------------------------
 comments:
   provider: giscus
   giscus:

@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 #
-# bin/status — what's published, what's gated, what's embargoed.
+# bin/status: what's published, what's gated, what's embargoed.
 #
 require "yaml"
 require "date"
@@ -42,7 +42,7 @@ else
 end
 
 puts
-puts "#{BOLD}EMBARGOED / DRAFTS#{NC} (#{drafts.size}) #{DIM}— git-ignored, never published#{NC}"
+puts "#{BOLD}EMBARGOED / DRAFTS#{NC} (#{drafts.size}) #{DIM}git-ignored, never published#{NC}"
 if drafts.empty?
   puts "  #{DIM}none#{NC}"
 else

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# bin/setup-giscus — enable GitHub Discussions and wire giscus comments
+# bin/setup-giscus: enable GitHub Discussions and wire giscus comments
 # into _config.yml. Run once, after the repo exists and is pushed.
 #
 source "$(dirname "$0")/_common.sh"
