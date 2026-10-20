@@ -58,6 +58,47 @@ finish. Live in about a minute.
 
 ---
 
+## Drafting in a chat window instead
+
+If the writing happens in claude.ai rather than in an editor, the brief and the
+paste catcher carry it over.
+
+**One-time setup.** Paste the brief into the Claude project as an instruction
+(or attach it as a file):
+
+```bash
+bin/brief        # writes ~/Developer/writing/claude-brief.md
+```
+
+It contains the house rules, the output contract, and the full text of every
+published post as voice samples. It is safe to paste: it holds only published
+text, never program names, targets, or the denylist. Re-run it after publishing
+so the samples stay current.
+
+**Per post.** Copy Claude's whole reply, then:
+
+```bash
+bin/draft                 # reads the clipboard, writes _drafts/<slug>.md
+bin/draft --open          # same, then opens the file
+```
+
+`bin/draft` reads the `yaml meta` and `markdown post` blocks from the reply,
+generates the front matter itself (date, category, gate set to `draft`), strips
+a repeated H1, converts em dashes to commas, and greps the result against your
+denylist. It only ever writes to `_drafts/`, which is git-ignored, so a chat
+draft cannot reach the site by accident.
+
+Then read it, fix it, and promote it:
+
+```bash
+bin/serve
+bin/publish --from-draft the-slug --consent --disclosed-on 2026-10-20 --wait
+```
+
+Plain prose with no fenced blocks also works: `bin/draft --title "Title here"`.
+
+---
+
 ## Embargoed work
 
 Anything that touches a live program, a target, or an unreleased finding goes

@@ -23,7 +23,22 @@ bin/status               # published / gated / embargoed
 bin/tags                 # existing tags, with counts
 bin/scrub IMG...         # strip EXIF (needs exiftool)
 bin/setup-giscus         # wire comments (needs the repo to exist)
+bin/brief                # regenerate the claude.ai writing brief (paste-safe)
+bin/draft                # clipboard -> _drafts/<slug>.md, front matter generated
 ```
+
+## Chat-drafting lane (claude.ai)
+
+The operator drafts in claude.ai; `bin/brief` and `bin/draft` are the bridge.
+
+- `bin/brief` output MUST stay paste-safe: house rules, output contract, and
+  the text of published posts only. Never emit the denylist, program names,
+  target hosts, or anything from `_drafts/` into it. It leaves the machine.
+- `bin/draft` may only write into `_drafts/`. If a change would let it write to
+  `_posts/`, it is wrong; promotion stays a human `bin/publish --from-draft`.
+- Generated front matter always arrives with `status: draft`,
+  `program_consent: false`, empty `disclosed_on`, regardless of what the model
+  returned. Do not make those fields model-controlled.
 
 ## Rules that are not negotiable
 

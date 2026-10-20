@@ -1,0 +1,182 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+#
+# bin/draft [--file PATH] [--title "..."] [--category Guides] [--slug name]
+#           [--keep-dashes] [--open]
+#
+# Catches a post written in a chat window and puts it in _drafts/ as a real
+# draft, with generated front matter and a closed disclosure gate.
+#
+#   bin/draft                          read the clipboard (pbpaste)
+#   bin/draft --file out.md            read a file
+#   bin/draft --title "Some title"     override the title
+#   bin/draft --open                   open in the editor after writing
+#
+# Understands two shapes pasted out of Claude:
+#
+#   1. the brief's contract: a ```yaml meta block + a ```markdown post block
+#   2. anything else: the whole paste is the body, title comes from --title
+#
+# Em dashes are converted by default (this blog does not use them); pass
+# --keep-dashes to leave the text exactly as pasted.
+#
+# A draft is git-ignored. Nothing here can publish.
+#
+require "yaml"
+require "date"
+
+ROOT       = File.expand_path("..", __dir__)
+DRAFTS_DIR = File.join(ROOT, "_drafts")
+DENYLIST   = ENV["BLOG_DENYLIST"] || File.join(Dir.home, "Developer", "writing", "denylist.txt")
+CATEGORIES = %w[Guides Notes Opinion Writeups].freeze
+
+RED = "\e[31m"; GREEN = "\e[32m"; YELLOW = "\e[33m"; DIM = "\e[2m"; BOLD = "\e[1m"; NC = "\e[0m"
+def die(msg)  = (warn("#{RED}error:#{NC} #{msg}"); exit 1)
+def ok(msg)   = puts("#{GREEN}ok#{NC}  #{msg}")
+def warn_(msg) = puts("#{YELLOW}warn#{NC} #{msg}")
+def info(msg) = puts("#{DIM}#{msg}#{NC}")
+
+opts = { file: nil, title: nil, category: nil, slug: nil, keep_dashes: false, open: false }
+
+args = ARGV.dup
+until args.empty?
+  a = args.shift
+  case a
+  when "--file"        then opts[:file] = args.shift
+  when "--title"       then opts[:title] = args.shift
+  when "--category"    then opts[:category] = args.shift
+  when "--slug"        then opts[:slug] = args.shift
+  when "--keep-dashes" then opts[:keep_dashes] = true
+  when "--open"        then opts[:open] = true
+  when "-h", "--help"
+    puts File.readlines(__FILE__)[2..26].map { |l| l.sub(/^# ?/, "") }.join
+    exit 0
+  else
+    die "unknown option: #{a}"
+  end
+end
+
+# --- read the paste ----------------------------------------------------------
+raw =
+  if opts[:file]
+    die "no such file: #{opts[:file]}" unless File.exist?(opts[:file])
+    File.read(opts[:file], encoding: "UTF-8")
+  elsif !$stdin.tty? && !(piped = $stdin.read.to_s).strip.empty?
+    piped
+  else
+    (IO.popen(%w[pbpaste], &:read) rescue "") || ""
+  end
+
+raw = raw.to_s.gsub("\r\n", "\n").strip
+die "nothing to draft (clipboard is empty)" if raw.empty?
+
+# A whole-message fence is common when copying out of a chat UI.
+if (m = raw.match(/\A```[a-zA-Z]*\n(.*)\n```\z/m))
+  raw = m[1].strip
+end
+
+# --- split meta / body -------------------------------------------------------
+def fenced(text, names)
+  names.each do |n|
+    if (m = text.match(/```(?:#{n})[^\n]*\n(.*?)\n```/m))
+      return [m[1], text.sub(m[0], "")]
+    end
+  end
+  nil
+end
+
+meta = {}
+body = nil
+
+if (found = fenced(raw, ["yaml meta", "yaml", "frontmatter", "front-matter"]))
+  content, rest = found
+  parsed = YAML.safe_load(content, permitted_classes: [Date], aliases: true) rescue {}
+  meta = parsed if parsed.is_a?(Hash)
+  raw = rest.strip
+end
+
+if (found = fenced(raw, ["markdown post", "markdown", "post", "md"]))
+  body = found[0]
+else
+  body = raw
+end
+
+body = body.to_s.strip
+
+# --- front matter (from a full post paste, if one was given) -----------------
+if body.start_with?("---") && (close = (1...body.lines.size).find { |i| body.lines[i].strip == "---" })
+  fm = YAML.safe_load(body.lines[1...close].join, permitted_classes: [Date, Time], aliases: true) rescue {}
+  if fm.is_a?(Hash)
+    meta = fm.merge(meta)
+    body = body.lines[(close + 1)..].to_a.join.strip
+  end
+end
+
+title = (opts[:title] || meta["title"]).to_s.strip
+die "no title: paste a ```yaml meta block, or pass --title \"...\"" if title.empty?
+
+cat_in = (opts[:category] || Array(meta["categories"]).first || meta["category"] || "Notes").to_s
+category = CATEGORIES.find { |c| c.casecmp?(cat_in) } || die("unknown category '#{cat_in}'. Use: #{CATEGORIES.join(', ')}")
+
+# Drop an H1 that just repeats the title (Chirpy renders the title itself).
+body = body.sub(/\A#\s+#{Regexp.escape(title)}\s*\n+/, "").strip
+
+# --- em dashes ---------------------------------------------------------------
+unless opts[:keep_dashes]
+  n = body.scan("—").size
+  if n.positive?
+    body = body.gsub(/\s*—\s*/, ", ").gsub(/\s+,/, ",").gsub(/,\s*,/, ",")
+    info "converted #{n} em dash#{'es' if n > 1} to commas (review them, then --keep-dashes to disable)"
+  end
+end
+
+# --- write -------------------------------------------------------------------
+slug = (opts[:slug] || title.downcase.gsub(/[^a-z0-9]+/, "-").gsub(/\A-+|-+\z/, "")).to_s
+die "could not build a slug from '#{title}'" if slug.empty?
+
+Dir.mkdir(DRAFTS_DIR) unless Dir.exist?(DRAFTS_DIR)
+path = File.join(DRAFTS_DIR, "#{slug}.md")
+die "already exists: _drafts/#{slug}.md (pick another --slug)" if File.exist?(path)
+
+description = (meta["description"] || meta["summary"]).to_s.strip
+if description.empty?
+  warn_ "no description; add one before publishing (it is the link preview)"
+  description = "DESCRIPTION MISSING"
+end
+
+tags = Array(meta["tags"]).map { |t| t.to_s.strip.downcase }.reject(&:empty?)
+
+esc = ->(s) { s.to_s.gsub("\\") { "\\\\" }.gsub('"', '\"') }
+description = description.gsub(/\s+/, " ")
+
+front = +"---\n"
+front << "title: \"#{esc.call(title)}\"\n"
+front << "date: #{Date.today.strftime('%F')} 09:00:00 +0200\n"
+front << "categories: [#{category}]\n"
+front << "tags: [#{tags.join(', ')}]\n"
+front << "description: >-\n  #{description}\n"
+front << "image:\n"
+front << "toc: true\n"
+front << "comments: true\n"
+front << "disclosure:\n"
+front << "  status: draft\n"
+front << "  program_consent: false\n"
+front << "  disclosed_on:\n"
+front << "---\n\n"
+
+File.write(path, front + body.strip + "\n", encoding: "UTF-8")
+
+words = body.split(/\s+/).size
+ok "drafted _drafts/#{slug}.md  (#{words} words, #{category})"
+
+# --- denylist, local only ----------------------------------------------------
+if File.exist?(DENYLIST)
+  terms = File.readlines(DENYLIST, encoding: "UTF-8").map(&:strip).reject { |l| l.empty? || l.start_with?("#") }
+  hits = terms.select { |t| body.downcase.include?(t.downcase) }
+  warn_ "denylist hit(s): #{hits.join(', ')}. Fix before publishing." unless hits.empty?
+end
+
+info "read it:      bin/serve            → http://127.0.0.1:4000"
+info "publish it:   bin/publish --from-draft #{slug} --consent --disclosed-on #{Date.today}"
+
+system("open", path) if opts[:open]
